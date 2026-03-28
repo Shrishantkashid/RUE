@@ -4,6 +4,7 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
+from typing import List
 from models import AnswerResponse, VerifyResponse
 
 _client = None
@@ -57,24 +58,26 @@ INSTRUCTIONS:
         print(f"Error calling Groq: {e}")
         return AnswerResponse(answer=f"An error occurred with Groq: {str(e)}", concepts=[])
 
-async def explain_term_llm(term: str, context: str, simpler: bool = False) -> AnswerResponse:
+async def explain_term_llm(terms: List[str], context: str, simpler: bool = False) -> AnswerResponse:
     client = get_client()
     if not client:
         return AnswerResponse(answer="GROQ_API_KEY is not set.", concepts=[])
 
     def do_call():
         mode = "a very beginner-friendly, simpler explanation that removes jargon" if simpler else "a detailed, insightful explanation"
+        terms_str = ", ".join([f"'{t}'" for t in terms])
         prompt = f"""You are the core intelligence of the Recursive Understanding Engine (RUE).
-The user is exploring a concept recursively. 
-They encountered the term '{term}' in the core context: "{context}".
+The user is exploring these concepts recursively: {terms_str}. 
+Core Context from which these terms were extracted: "{context}".
 
 INSTRUCTIONS:
-1. Provide {mode} for the term '{term}'.
-2. **JARGON REMOVAL**: If the term is complex, break it down into simpler components.
-3. **CONCEPT SELECTION**: Pick terms that are "building blocks" for the current term's understanding.
-4. **JSON FORMAT**: You MUST return a JSON object with the following structure:
+1. Provide {mode} for the terms {terms_str}.
+2. **COHESION**: Explain how these terms relate to each other within the provided context. If only one term was provided, focus on it deeply.
+3. **JARGON REMOVAL**: If the terms are complex, break them down into simpler components.
+4. **CONCEPT SELECTION**: Pick terms that are foundational "building blocks" for understanding these concepts.
+5. **JSON FORMAT**: You MUST return a JSON object with the following structure:
 {{
-  "answer": "Your detailed explanation here...",
+  "answer": "Your detailed, cohesive explanation here...",
   "concepts": [
     {{ "term": "Concept Name", "context_id": "concept-slug" }},
     ...

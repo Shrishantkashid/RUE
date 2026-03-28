@@ -14,7 +14,7 @@ class AskRequest(BaseModel):
 
 class ExplainRequest(BaseModel):
     session_id: str
-    term: str
+    terms: List[str]
     parent_node_id: str
     context: str
     simpler: bool = False

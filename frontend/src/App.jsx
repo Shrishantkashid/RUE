@@ -13,6 +13,7 @@ function App() {
   const [sessionData, setSessionData] = useState(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [simplifiedMode, setSimplifiedMode] = useState(true); // Default to simplified as per PDF guidance
+  const [magicSelectMode, setMagicSelectMode] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
   const handleAsk = async (e) => {
@@ -111,6 +112,24 @@ function App() {
                     <div className={`absolute left-1 top-1 h-3 w-3 rounded-full bg-white transition-transform ${simplifiedMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
                   </div>
                 </label>
+
+                <div className="h-4 w-[1px] bg-white/10"></div>
+
+                <label className="flex items-center space-x-2 cursor-pointer group">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400 group-hover:text-amber-400 transition-colors">
+                    Magic Select
+                  </span>
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only" 
+                      checked={magicSelectMode}
+                      onChange={() => setMagicSelectMode(!magicSelectMode)}
+                    />
+                    <div className={`block h-5 w-9 rounded-full transition-colors ${magicSelectMode ? 'bg-amber-500' : 'bg-white/10'}`}></div>
+                    <div className={`absolute left-1 top-1 h-3 w-3 rounded-full bg-white transition-transform ${magicSelectMode ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                  </div>
+                </label>
              </motion.div>
           )}
           <p className={`text-lg sm:text-xl text-gray-400 font-medium tracking-wide mt-2 ${hasStarted ? 'hidden' : 'block'}`}>
@@ -180,6 +199,7 @@ function App() {
                    session_id={sessionData.session_id} 
                    API_URL={API_URL} 
                    simplifiedMode={simplifiedMode}
+                   magicSelectMode={magicSelectMode}
                    depth={0}
                  />
                </div>

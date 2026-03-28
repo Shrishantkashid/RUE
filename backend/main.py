@@ -47,14 +47,15 @@ async def explain_term(request: ExplainRequest):
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set on the server.")
         
-    response = await explain_term_llm(request.term, request.context, simpler=request.simpler)
+    response = await explain_term_llm(request.terms, request.context, simpler=request.simpler)
     
     new_node_id = str(uuid.uuid4())
+    combined_term = " + ".join(request.terms) if len(request.terms) > 1 else request.terms[0]
     
     node = NodeData(
         id=new_node_id,
         session_id=request.session_id,
-        term=request.term,
+        term=combined_term,
         content=response.answer,
         parent_id=request.parent_node_id,
         concepts=[c.model_dump() for c in response.concepts]
