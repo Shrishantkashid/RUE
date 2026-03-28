@@ -1,0 +1,128 @@
+import React, { useState } from 'react';
+import AnswerBlock from './AnswerBlock';
+import { Loader2 } from 'lucide-react';
+import axios from 'axios';
+import { motion } from 'framer-motion';
+
+export default function NodeViewer({ node, session_id, API_URL, simplifiedMode = false, depth = 0, path = [] }) {
+  const [children, setChildren] = useState({}); // concept.context_id -> node_data
+  const [loading, setLoading] = useState({});
+  const [activeConcept, setActiveConcept] = useState(null);
+
+  const handleConceptClick = async (concept, context) => {
+    setActiveConcept(concept.context_id);
+    
+    if (children[concept.context_id]) {
+        // Toggle visibility if already loaded? Actually we can just keep it.
+        return; 
+    }
+
+    setLoading({ ...loading, [concept.context_id]: true });
+    try {
+      const res = await axios.post(`${API_URL}/explain`, {
+        session_id: session_id,
+        term: concept.term,
+        parent_node_id: node.id,
+        context: context,
+        simpler: simplifiedMode
+      });
+      setChildren({ ...children, [concept.context_id]: res.data.node });
+    } catch (err) {
+      console.error("Explain error", err);
+    } finally {
+      setLoading({ ...loading, [concept.context_id]: false });
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="glass-panel p-5 sm:p-7 rounded-2xl border-t border-t-white/10 border-l border-l-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] relative overflow-hidden group"
+      >
+        <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-900 flex items-center justify-center text-white font-bold text-lg shadow-inner shadow-white/20">
+                    {node.term.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                   <div className="flex items-center space-x-2">
+                     <h3 className="text-xl sm:text-2xl font-outfit font-bold text-white tracking-wide">
+                       {node.term}
+                     </h3>
+                     <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] uppercase font-bold tracking-tighter text-gray-400">
+                        {depth === 0 ? 'Foundation' : `Layer ${depth}`}
+                     </span>
+                   </div>
+                   {path.length > 0 && (
+                     <div className="flex items-center space-x-1 text-[10px] text-gray-500 font-medium uppercase tracking-wider mt-0.5">
+                        {path.map((p, i) => (
+                          <React.Fragment key={p}>
+                            <span>{p}</span>
+                            <span className="opacity-30">/</span>
+                          </React.Fragment>
+                        ))}
+                     </div>
+                   )}
+                </div>
+            </div>
+        </div>
+        
+        <div className="text-[1.05rem]">
+            <AnswerBlock 
+              content={node.content} 
+              concepts={node.concepts} 
+              onConceptClick={handleConceptClick}
+              activeContextId={activeConcept}
+            />
+        </div>
+        
+        {/* Subtle decorative bg blob */}
+        <div className="absolute -top-16 -right-16 w-48 h-48 bg-primary-400/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary-400/10 transition-colors duration-700"></div>
+      </motion.div>
+
+      {/* Children container with connecting line */}
+      <div className="mt-4 sm:mt-6 pl-4 sm:pl-10 space-y-4 sm:space-y-6 border-l-2 border-white/10 relative ml-4 sm:ml-5 flex-1 w-[calc(100%-1rem)]">
+        {node.concepts?.map(concept => {
+           const childNode = children[concept.context_id];
+           const isLoading = loading[concept.context_id];
+           
+           if (!childNode && !isLoading) return null;
+           
+           return (
+             <div key={concept.context_id} className="relative z-10 w-full pr-2">
+               {/* Horizontal branch line */}
+               <motion.div 
+                 initial={{ width: 0, opacity: 0 }}
+                 animate={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? 16 : 40, opacity: 1 }}
+                 transition={{ duration: 0.8, ease: "circOut" }}
+                 className="absolute -left-[1.125rem] sm:-left-[2.625rem] top-8 h-[2px] bg-white/10 pointer-events-none"
+               ></motion.div>
+               
+               {isLoading ? (
+                 <motion.div 
+                   initial={{ opacity: 0 }} 
+                   animate={{ opacity: 1 }} 
+                   className="glass-panel p-4 rounded-xl flex items-center space-x-3 border border-primary-500/20 bg-primary-900/10 w-fit"
+                 >
+                    <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
+                    <span className="text-sm font-medium text-gray-300">
+                      Deep diving into <strong className="text-primary-300">{concept.term}</strong>...
+                    </span>
+                 </motion.div>
+               ) : childNode ? (
+                 <NodeViewer 
+                   node={childNode} 
+                   session_id={session_id} 
+                   API_URL={API_URL} simplifiedMode={simplifiedMode} depth={depth + 1} path={[...path, node.term]}
+                 />
+               ) : null}
+             </div>
+           );
+        })}
+      </div>
+    </div>
+  );
+}
