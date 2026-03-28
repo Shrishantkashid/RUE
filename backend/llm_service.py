@@ -4,7 +4,7 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
-from models import AnswerResponse
+from models import AnswerResponse, VerifyResponse
 
 _client = None
 
@@ -95,3 +95,42 @@ INSTRUCTIONS:
     except Exception as e:
         print(f"Error calling Groq: {e}")
         return AnswerResponse(answer=f"An error occurred with Groq: {str(e)}", concepts=[])
+async def verify_understanding_llm(term: str, explanation: str, context: str) -> VerifyResponse:
+    client = get_client()
+    if not client:
+        return VerifyResponse(status="ERROR", feedback="GROQ_API_KEY is not set.", score=0)
+
+    def do_call():
+        prompt = f"""You are a "Mastery Evaluator" for the Recursive Understanding Engine (RUE).
+The user is trying to prove they understand the concept: "{term}".
+Core Context: "{context}"
+User's Explanation: "{explanation}"
+
+INSTRUCTIONS:
+1. Evaluate the user's explanation for accuracy, depth, and clarity relative to the context.
+2. Provide constructive feedback.
+3. Assign a status: 
+   - "MASTERED": Excellent, accurate, and covers the core idea. (Score 85-100)
+   - "LEARNING": Mostly correct but missing key nuances or slightly vague. (Score 50-84)
+   - "NOVICE": Significant misconceptions or too brief to judge. (Score 0-49)
+4. **JSON FORMAT**: You MUST return a JSON object with the following structure:
+{{
+  "status": "MASTERED" | "LEARNING" | "NOVICE",
+  "feedback": "Your personal feedback to the user...",
+  "score": 95
+}}
+"""
+        return client.chat.completions.create(
+            model='llama-3.3-70b-versatile',
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.2
+        )
+
+    try:
+        response = await asyncio.to_thread(do_call)
+        data = json.loads(response.choices[0].message.content)
+        return VerifyResponse(**data)
+    except Exception as e:
+        print(f"Error calling Groq for verification: {e}")
+        return VerifyResponse(status="ERROR", feedback=f"Verification failed: {str(e)}", score=0)

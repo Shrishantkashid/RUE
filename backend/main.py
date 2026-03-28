@@ -5,8 +5,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from models import AskRequest, ExplainRequest, NodeData
-from llm_service import ask_llm, explain_term_llm
+from models import AskRequest, ExplainRequest, NodeData, VerifyRequest, VerifyResponse
+from llm_service import ask_llm, explain_term_llm, verify_understanding_llm
 from database import save_node, get_session_history
 
 app = FastAPI(title="Recursive Understanding Engine API")
@@ -93,3 +93,11 @@ async def get_tree(session_id: str):
             })
             
     return {"nodes": nodes, "edges": edges}
+
+@app.post("/verify")
+async def verify_understanding(request: VerifyRequest):
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not set on the server.")
+        
+    response = await verify_understanding_llm(request.term, request.explanation, request.context)
+    return response

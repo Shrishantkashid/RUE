@@ -3,6 +3,7 @@ import { Sparkles, BrainCircuit, Search, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import NodeViewer from './components/NodeViewer';
+import ConceptualMap from './components/ConceptualMap';
 
 const API_URL = "http://localhost:8000";
 
@@ -12,6 +13,7 @@ function App() {
   const [sessionData, setSessionData] = useState(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [simplifiedMode, setSimplifiedMode] = useState(true); // Default to simplified as per PDF guidance
+  const [showMap, setShowMap] = useState(false);
 
   const handleAsk = async (e) => {
     e.preventDefault();
@@ -76,6 +78,20 @@ function App() {
                 >
                   <span className="bg-white/10 p-1 rounded-md">Esc</span>
                   <span>Reset Engine</span>
+                </button>
+                
+                <div className="h-4 w-[1px] bg-white/10"></div>
+                
+                <button 
+                  onClick={() => setShowMap(!showMap)}
+                  className={`text-xs font-bold uppercase tracking-widest transition-colors flex items-center space-x-2 py-1.5 px-3 rounded-md border ${
+                    showMap 
+                    ? 'bg-primary-500/20 border-primary-500/30 text-primary-400' 
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>{showMap ? 'Show Text' : 'Show Visual Map'}</span>
                 </button>
                 
                 <div className="h-4 w-[1px] bg-white/10"></div>
@@ -150,13 +166,21 @@ function App() {
                initial={{ opacity: 0, y: 50 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-               className="w-full"
+               className="w-full flex flex-col space-y-12"
              >
-               <div className="w-full max-w-4xl mx-auto pb-20">
+               {showMap && (
+                  <div className="w-full max-w-5xl mx-auto">
+                    <ConceptualMap session_id={sessionData.session_id} API_URL={API_URL} />
+                  </div>
+               )}
+               
+               <div className={`w-full max-w-4xl mx-auto pb-20 ${showMap ? 'opacity-40 grayscale pointer-events-none blur-[2px] h-0 overflow-hidden' : 'opacity-100 grayscale-0'}`}>
                  <NodeViewer 
                    node={sessionData.rootNode} 
                    session_id={sessionData.session_id} 
-                   API_URL={API_URL} simplifiedMode={simplifiedMode} depth={0} 
+                   API_URL={API_URL} 
+                   simplifiedMode={simplifiedMode}
+                   depth={0}
                  />
                </div>
              </motion.div>

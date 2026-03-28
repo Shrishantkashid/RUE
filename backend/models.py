@@ -26,3 +26,14 @@ class NodeData(BaseModel):
     content: str
     parent_id: Optional[str] = None
     concepts: List[dict]
+    mastered: bool = False
+
+class VerifyRequest(BaseModel):
+    term: str
+    explanation: str
+    context: str
+
+class VerifyResponse(BaseModel):
+    status: str # "MASTERED" | "LEARNING" | "NOVICE"
+    feedback: str
+    score: int # 0-100
